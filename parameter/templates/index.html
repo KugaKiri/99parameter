@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flaskテストページ</title>
+    <style>
+        body { font-family: sans-serif; margin: 40px; }
+        h1 { color: #333; }
+        a { color: #007bff; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .container {
+            background-color: #f8f8f8;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-width: 600px;
+            margin: 20px auto;
+        }
+        p { line-height: 1.6; }
+        .info {
+            background-color: #e9ecef;
+            padding: 10px;
+            border-left: 5px solid #007bff;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ようこそ！Flaskテストページへ！</h1>
+        <p>このページは、Flaskアプリケーションのルート (<code>/</code>) にアクセスしたときに表示されます。</p>
+        <p>いくつかテスト用のリンクを用意したよ:</p>
+        <ul>
+            <li><a href="/view_locations">これまでに受信した位置情報を見る</a></li>
+            <li><a href="/export_locations">これまでに受信した位置情報をCSVでダウンロード</a></li>
+        </ul>
+        <p class="info">
+            <strong>注意:</strong> 位置情報の送信は、外部のAndroidアプリなどから <code>/submit_location</code> にPOSTリクエストを送る必要があります。
+            このページからは直接送信できません。
+        </p>
+    </div>
+</body>
+</html>
