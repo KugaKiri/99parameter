@@ -1,0 +1,66 @@
+2025年現在、Streamlitは「世界で最も早くPythonをWebアプリ化できるツール」として定着しています。HTML/CSSを一行も書かずに、今回設計したCSVツリー構造をそのままWebアプリにする手順を4ステップで解説します。
+ステップ1：準備（インストール）
+まず、ローカルのパソコンにStreamlitをインストールします。 
+bash
+pip install streamlit pandas
+コードは注意してご使用ください。
+
+ステップ2：プログラムの作成（app.py） 
+フォルダ内に app.py というファイルを作り、これまでのロジックをStreamlitの書き方に当てはめます。
+python
+import streamlit as st
+import pandas as pd
+import os
+
+st.title("データ検索アプリ")
+
+# 1. 親データの読み込み
+# data/master.csv がある前提
+master_df = pd.read_csv("data/master.csv")
+
+# 2. 最初のコンボボックス（名前選択）
+selected_name = st.selectbox("名前を選択してください", master_df["表示名"])
+
+# 3. マスターから対応するファイル名を取得
+target_file = master_df.loc[master_df["表示名"] == selected_name, "ファイル名"].values[0]
+file_path = os.path.join("data/details", target_file)
+
+# 4. 個別ファイルの読み込み
+if os.path.exists(file_path):
+    detail_df = pd.read_csv(file_path)
+    options = detail_df["選択肢"].tolist()
+
+    # 5. 連動するコンボボックス（複数選択など）
+    # ここで「重複させない」などのロジックを入れる
+    selected_items = st.multiselect("種類を選択してください", options)
+
+    if selected_items:
+        st.write("選択された内容:", selected_items)
+        
+        # 6. ダウンロードボタンの設置
+        csv = detail_df.to_csv(index=False).encode('utf-8-sig')
+        st.download_button("結果をCSVでダウンロード", csv, "result.csv", "text/csv")
+コードは注意してご使用ください。
+
+ステップ3：ローカルでの動作確認
+ターミナル（コマンドプロンプト）で以下のコマンドを打ちます。
+bash
+streamlit run app.py
+コードは注意してご使用ください。
+
+自動的にブラウザが立ち上がり、作成したアプリが表示されます。この時点で、すでにWebアプリとしての外見が完成しています。 
+ステップ4：Webへの公開（Streamlit Cloud）
+ローカルで動くことが確認できたら、世界に公開します。
+GitHubにアップロード:
+作成したフォルダ（app.py、data/、requirements.txt）をGitHubの新しいリポジトリにアップロードします。
+※requirements.txt には streamlit と pandas と記載しておきます。
+Streamlit Cloudに接続:
+Streamlit Community Cloudにアクセスし、GitHubアカウントでログインします。
+デプロイ（公開）:
+「Create app」ボタンを押し、作成したリポジトリを選択して「Deploy!」を押します。
+完了:
+数分待つと、専用のURL（https://xxx.streamlit.app）が発行され、誰でもアクセスできるようになります。 
+Streamlitを使いこなすコツ
+見た目の調整: st.sidebar.selectbox と書くだけで、左側にサイドメニューを作れます。 Streamlit APIリファレンスを見ると、ボタンやスライダーなどの部品がすぐに見つかります。
+データの反映: data/ フォルダ内のCSVをGitHub上で更新すれば、数秒後にWebサイト側の選択肢も自動で変わります。 
+まずはローカルで streamlit run を実行して、その手軽さを体感してみてください！
