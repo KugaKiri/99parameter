@@ -4,9 +4,12 @@ import numpy as np
 
 st.title("Streamlit 表表示サンプル")
 
-# サンプルデータの作成（10行5列のランダムな数値）
+# 行数を指定する数値入力フォーム
+rows = st.number_input("生成する行数を入力してください", min_value=1, max_value=100, value=10)
+
+# サンプルデータの作成（指定された行数、5列のランダムな数値）
 df = pd.DataFrame(
-    np.random.randn(10, 5),
+    np.random.randn(rows, 5),
     columns=[f'列 {i+1}' for i in range(5)]
 )
 
