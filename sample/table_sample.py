@@ -1,0 +1,33 @@
+import streamlit as st
+import pandas as pd
+import numpy as np
+
+st.title("Streamlit 表表示サンプル")
+
+# サンプルデータの作成（10行5列のランダムな数値）
+df = pd.DataFrame(
+    np.random.randn(10, 5),
+    columns=[f'列 {i+1}' for i in range(5)]
+)
+
+# 1. st.dataframe: インタラクティブな表
+st.header("1. st.dataframe (推奨)")
+st.write("列のソート、リサイズ、検索が可能です。大量のデータ表示に向いています。")
+# use_container_width=True で横幅いっぱいに広げられます
+st.dataframe(df, use_container_width=True)
+
+# 2. st.table: 静的な表
+st.header("2. st.table")
+st.write("HTMLのテーブルとしてレンダリングされます。データ量が少ない場合や、固定表示したい場合に適しています。")
+st.table(df.head(3)) # 上位3行のみ表示
+
+# 3. st.data_editor: 編集可能な表
+st.header("3. st.data_editor")
+st.write("セルをクリックして値を編集できます。")
+edited_df = st.data_editor(df, key="editor")
+
+# 編集されたデータを確認するボタン
+if st.button("編集後のデータを確認"):
+    st.write("編集後のデータフレーム:")
+    st.dataframe(edited_df)
+    st.success("このデータをCSVとして保存したり、計算に使ったりできます。")
