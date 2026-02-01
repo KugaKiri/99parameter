@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -205,3 +206,6 @@ program_icons/
 *.slnx
 *.png
 >>>>>>> f1a77faaaa8b48d28c67fe4245f301e2cfafda14
+=======
+.history
+>>>>>>> c4ea767ce531d0e0a7014eaf84da1a0257f43324
