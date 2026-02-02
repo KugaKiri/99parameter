@@ -220,8 +220,17 @@ def get_skill_value(key):
     else:
         return str(base)
 
+def render_skill_row(label, check_key, value_key):
+    col_check, col_label, col_value = st.columns([0.5, 1.4, 1.1])
+    with col_check:
+        st.checkbox(label, key=check_key, label_visibility="collapsed")
+    with col_label:
+        st.write(label)
+    with col_value:
+        st.text_input(label, value=get_skill_value(value_key), disabled=True, label_visibility="collapsed")
+
 # メインコンテンツ
-col_img, col1, col2, col3, col4 = st.columns([1.2, 0.9, 0.9, 0.9, 0.9])
+col_img, col1, col2, col3, col4 = st.columns([1.2, 0.7, 0.7, 0.7, 0.7])
 
 with col_img:
     # 画像アップロード
@@ -240,58 +249,38 @@ with col_img:
 with col1:
     st.subheader("【身体】")
     st.text_input("身体", key='u')
-    st.checkbox("★白兵", key='check_a')
-    st.text_input("白兵", value=get_skill_value('a'), disabled=True)
-    st.checkbox("運動", key='check_b')
-    st.text_input("運動", value=get_skill_value('b'), disabled=True)
-    st.checkbox("頑健", key='check_c')
-    st.text_input("頑健", value=get_skill_value('c'), disabled=True)
-    st.checkbox("操縦", key='check_d')
-    st.text_input("操縦", value=get_skill_value('d'), disabled=True)
-    st.checkbox("知覚", key='check_e')
-    st.text_input("知覚", value=get_skill_value('e'), disabled=True)
+    render_skill_row("★白兵", "check_a", "a")
+    render_skill_row("運動", "check_b", "b")
+    render_skill_row("頑健", "check_c", "c")
+    render_skill_row("操縦", "check_d", "d")
+    render_skill_row("知覚", "check_e", "e")
 
 with col2:
     st.subheader("【技量】")
     st.text_input("技量", key='v')
-    st.checkbox("★射撃", key='check_f')
-    st.text_input("射撃", value=get_skill_value('f'), disabled=True)
-    st.checkbox("医療", key='check_g')
-    st.text_input("医療", value=get_skill_value('g'), disabled=True)
-    st.checkbox("隠密", key='check_h')
-    st.text_input("隠密", value=get_skill_value('h'), disabled=True)
-    st.checkbox("工作", key='check_i')
-    st.text_input("工作", value=get_skill_value('i'), disabled=True)
-    st.checkbox("捜査", key='check_j')
-    st.text_input("捜査", value=get_skill_value('j'), disabled=True)
+    render_skill_row("★射撃", "check_f", "f")
+    render_skill_row("医療", "check_g", "g")
+    render_skill_row("隠密", "check_h", "h")
+    render_skill_row("工作", "check_i", "i")
+    render_skill_row("捜査", "check_j", "j")
 
 with col3:
     st.subheader("【心魂】")
     st.text_input("心魂", key='w')
-    st.checkbox("★呪法", key='check_k')
-    st.text_input("呪法", value=get_skill_value('k'), disabled=True)
-    st.checkbox("意志", key='check_l')
-    st.text_input("意志", value=get_skill_value('l'), disabled=True)
-    st.checkbox("看破", key='check_m')
-    st.text_input("看破", value=get_skill_value('m'), disabled=True)
-    st.checkbox("芸能", key='check_n')
-    st.text_input("芸能", value=get_skill_value('n'), disabled=True)
-    st.checkbox("伝承", key='check_o')
-    st.text_input("伝承", value=get_skill_value('o'), disabled=True)
+    render_skill_row("★呪法", "check_k", "k")
+    render_skill_row("意志", "check_l", "l")
+    render_skill_row("看破", "check_m", "m")
+    render_skill_row("芸能", "check_n", "n")
+    render_skill_row("伝承", "check_o", "o")
 
 with col4:
     st.subheader("【社会】")
     st.text_input("社会", key='x')
-    st.checkbox("★策謀", key='check_p')
-    st.text_input("策謀", value=get_skill_value('p'), disabled=True)
-    st.checkbox("教養", key='check_q')
-    st.text_input("教養", value=get_skill_value('q'), disabled=True)
-    st.checkbox("交渉", key='check_r')
-    st.text_input("交渉", value=get_skill_value('r'), disabled=True)
-    st.checkbox("電脳", key='check_s')
-    st.text_input("電脳", value=get_skill_value('s'), disabled=True)
-    st.checkbox("容姿", key='check_t')
-    st.text_input("容姿", value=get_skill_value('t'), disabled=True)
+    render_skill_row("★策謀", "check_p", "p")
+    render_skill_row("教養", "check_q", "q")
+    render_skill_row("交渉", "check_r", "r")
+    render_skill_row("電脳", "check_s", "s")
+    render_skill_row("容姿", "check_t", "t")
 
 st.radio("キャラクター分類", ["巫覡", "付喪神"], key='charactor_type')
 st.text_input("キャラ名", key='filename')
