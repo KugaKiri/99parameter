@@ -6,6 +6,20 @@ import io
 
 st.set_page_config(layout="wide")
 
+st.markdown(
+    """
+    <style>
+    .skill-row-label {
+        display: flex;
+        align-items: center;
+        height: 2.4rem;
+        line-height: 1.2;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 def resolve_font_path(app_font_path=None):
     """日本語表示を想定したフォントパスを解決する"""
     if app_font_path and os.path.exists(app_font_path):
@@ -225,7 +239,7 @@ def render_skill_row(label, check_key, value_key):
     with col_check:
         st.checkbox(label, key=check_key, label_visibility="collapsed")
     with col_label:
-        st.write(label)
+        st.markdown(f"<div class='skill-row-label'>{label}</div>", unsafe_allow_html=True)
     with col_value:
         st.text_input(label, value=get_skill_value(value_key), disabled=True, label_visibility="collapsed")
 
