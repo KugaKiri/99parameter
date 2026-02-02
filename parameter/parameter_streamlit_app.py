@@ -105,7 +105,7 @@ def create_image(values, checks, filename, charactor_type, uploaded_file):
     
     # 全体の寸法設定
     left_width = 310    # 左側（アップロード画像 + キャラ情報）
-    right_width = 600   # 右側（能力値情報）
+    right_width = 550   # 右側（能力値情報）
     total_width = left_width + right_width
     
     # 各セクションの高さ
@@ -244,7 +244,7 @@ def render_skill_row(label, check_key, value_key):
         st.text_input(label, value=get_skill_value(value_key), disabled=True, label_visibility="collapsed")
 
 # メインコンテンツ
-col_img, col1, col2, col3, col4 = st.columns([1.2, 0.9, 0.9, 0.9, 0.9])
+col_img, col1, col2, col3, col4 = st.columns([1.2, 0.4, 0.5, 0.6, 0.7])
 
 with col_img:
     # 画像アップロード
