@@ -6,6 +6,24 @@ import io
 
 st.set_page_config(layout="wide")
 
+# モバイルでも1行表示を保つためのCSS
+st.markdown("""
+<style>
+/* スキル行のコンテナに最小幅を設定 */
+.skill-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    white-space: nowrap;
+    min-width: 280px;
+}
+/* Streamlit のカラムに最小幅を強制 */
+div[data-testid="stColumn"] > div {
+    min-width: 280px !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 def resolve_font_path(app_font_path=None):
     """日本語表示を想定したフォントパスを解決する"""
     if app_font_path and os.path.exists(app_font_path):
@@ -230,7 +248,7 @@ def render_skill_row(label, check_key, value_key):
         st.text_input(label, value=get_skill_value(value_key), disabled=True, label_visibility="collapsed")
 
 # メインコンテンツ
-col_img, col1, col2, col3, col4 = st.columns([1.2, 1.0, 1.0, 1.0, 1.0])
+col_img, col1, col2, col3, col4 = st.columns([0.8, 1.3, 1.3, 1.3, 1.3])
 
 with col_img:
     # 画像アップロード
