@@ -1,62 +1,57 @@
 import streamlit as st
 from PIL import Image, ImageDraw, ImageFont
 import os
-import json
 import re
 import io
 
 st.set_page_config(layout="wide")
 
-class Config:
-    # デフォルト値の設定
-    DEFAULT_CONFIG = {
-        "FONTPATH": r"C:\Windows\Fonts\AdobeFangsongStd-Regular.otf",
-        "ICONPATH": r"parameter/parameter.ico",
-        "SHEETPATH": os.path.join(os.path.dirname(os.path.abspath(__file__)), "sheet.png"),
-        "ICONSUBPATH": r"parameter/gear.ico"
-    }
-    
-    # 設定ファイルのパス
-    CONFIG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
-    
-    @classmethod
-    def load_config(cls):
-        """設定ファイルから設定を読み込む"""
+def resolve_font_path(app_font_path=None):
+    """日本語表示を想定したフォントパスを解決する"""
+    if app_font_path and os.path.exists(app_font_path):
+        return app_font_path
+
+    env_font = os.environ.get("FONT_PATH")
+    if env_font and os.path.exists(env_font):
+        return env_font
+
+    windows_fonts = os.path.join(os.environ.get("WINDIR", r"C:\Windows"), "Fonts")
+    candidates = [
+        os.path.join(windows_fonts, "YuGothM.ttc"),
+        os.path.join(windows_fonts, "YuGothB.ttc"),
+        os.path.join(windows_fonts, "meiryo.ttc"),
+        os.path.join(windows_fonts, "meiryo.ttf"),
+        os.path.join(windows_fonts, "msgothic.ttc"),
+        os.path.join(windows_fonts, "MSMINCHO.TTC"),
+        os.path.join(windows_fonts, "AdobeFangsongStd-Regular.otf"),
+        "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+        "/usr/share/fonts/opentype/noto/NotoSansCJKjp-Regular.otf",
+        "/usr/share/fonts/truetype/noto/NotoSansJP-Regular.otf",
+        "/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc",
+        "/Library/Fonts/ヒラギノ角ゴシック W3.ttc",
+    ]
+
+    for path in candidates:
+        if os.path.exists(path):
+            return path
+    return None
+
+
+APP_FONT_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "assets",
+    "fonts",
+    "WDXLLubrifontJPN-Regular.ttf"
+)
+FONT_PATH = resolve_font_path(APP_FONT_PATH)
+
+def load_font(size):
+    if FONT_PATH:
         try:
-            if os.path.exists(cls.CONFIG_FILE):
-                with open(cls.CONFIG_FILE, 'r', encoding='utf-8') as f:
-                    config = json.load(f)
-                    cls.FONTPATH = config.get('FONTPATH', cls.DEFAULT_CONFIG['FONTPATH'])
-                    cls.ICONPATH = config.get('ICONPATH', cls.DEFAULT_CONFIG['ICONPATH'])
-                    cls.SHEETPATH = config.get('SHEETPATH', cls.DEFAULT_CONFIG['SHEETPATH'])
-                    cls.ICONSUBPATH = config.get('ICONSUBPATH', cls.DEFAULT_CONFIG['ICONSUBPATH'])
-            else:
-                cls.FONTPATH = cls.DEFAULT_CONFIG['FONTPATH']
-                cls.ICONPATH = cls.DEFAULT_CONFIG['ICONPATH']
-                cls.SHEETPATH = cls.DEFAULT_CONFIG['SHEETPATH']
-                cls.ICONSUBPATH = cls.DEFAULT_CONFIG['ICONSUBPATH']
-        except Exception as e:
-            st.error(f"設定ファイルの読み込みに失敗しました: {e}")
-            # デフォルト値を使用
-            cls.FONTPATH = cls.DEFAULT_CONFIG['FONTPATH']
-            cls.ICONPATH = cls.DEFAULT_CONFIG['ICONPATH']
-            cls.SHEETPATH = cls.DEFAULT_CONFIG['SHEETPATH']
-            cls.ICONSUBPATH = cls.DEFAULT_CONFIG['ICONSUBPATH']
-    
-    @classmethod
-    def save_config(cls):
-        """設定をファイルに保存"""
-        try:
-            config = {
-                'FONTPATH': cls.FONTPATH,
-                'ICONPATH': cls.ICONPATH,
-                'SHEETPATH': cls.SHEETPATH,
-                'ICONSUBPATH': cls.ICONSUBPATH
-            }
-            with open(cls.CONFIG_FILE, 'w', encoding='utf-8') as f:
-                json.dump(config, f, ensure_ascii=False, indent=4)
-        except Exception as e:
-            st.error(f"設定ファイルの保存に失敗しました: {e}")
+            return ImageFont.truetype(FONT_PATH, size)
+        except OSError:
+            pass
+    return ImageFont.load_default()
 
 def validate_input(input_string):
     """
@@ -130,16 +125,10 @@ def create_image(values, checks, filename, charactor_type, uploaded_file):
     draw = ImageDraw.Draw(img)
     
     # フォント設定
-    try:
-        font_large = ImageFont.truetype(Config.FONTPATH, 40)
-        font_medium = ImageFont.truetype(Config.FONTPATH, 35)
-        font_small = ImageFont.truetype(Config.FONTPATH, 28)
-        font_tiny = ImageFont.truetype(Config.FONTPATH, 20)
-    except IOError:
-        font_large = ImageFont.load_default()
-        font_medium = ImageFont.load_default()
-        font_small = ImageFont.load_default()
-        font_tiny = ImageFont.load_default()
+    font_large = load_font(40)
+    font_medium = load_font(35)
+    font_small = load_font(28)
+    font_tiny = load_font(20)
     
     # 左側にアップロード画像を配置（中央揃え）
     if uploaded_img:
@@ -211,7 +200,8 @@ def create_image(values, checks, filename, charactor_type, uploaded_file):
 # Streamlitアプリ
 st.title("ツクモツムギ-能力値/技能-画像出力 Ver3.0.0")
 
-Config.load_config()
+if not FONT_PATH:
+    st.warning("日本語フォントが見つからないため、既定フォントで描画します。文字化けする場合はアプリ内のフォントファイルを配置するか、環境変数FONT_PATHで指定してください。")
 
 # セッションステートの初期化
 st.session_state.setdefault('values', {key: '' for key in 'abcdefghijklmnopqrstuvwx'})
@@ -229,19 +219,6 @@ def get_skill_value(key):
         return str(base + 1)
     else:
         return str(base)
-
-# サイドバーで設定
-with st.sidebar:
-    st.header("設定")
-    font_path = st.text_input("フォントパス", Config.FONTPATH)
-    icon_path = st.text_input("アイコンパス", Config.ICONPATH)
-    sheet_path = st.text_input("シートパス", Config.SHEETPATH)
-    if st.button("設定保存"):
-        Config.FONTPATH = font_path
-        Config.ICONPATH = icon_path
-        Config.SHEETPATH = sheet_path
-        Config.save_config()
-        st.success("設定を保存しました")
 
 # メインコンテンツ
 col_img, col1, col2, col3, col4 = st.columns([1.2, 0.9, 0.9, 0.9, 0.9])
@@ -330,7 +307,13 @@ if st.button("画像作成"):
     
     # 画像作成
     charactor_type = st.session_state['charactor_type'] == "付喪神"
-    img_bytes, filename = create_image(values_final, checks, st.session_state['filename'], charactor_type, st.session_state.get('uploaded_file'))
+    img_bytes, filename = create_image(
+        values_final,
+        checks,
+        st.session_state['filename'],
+        charactor_type,
+        st.session_state.get('uploaded_file')
+    )
     
     # 画像を表示
     img_bytes.seek(0)
