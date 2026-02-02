@@ -230,7 +230,7 @@ def render_skill_row(label, check_key, value_key):
         st.text_input(label, value=get_skill_value(value_key), disabled=True, label_visibility="collapsed")
 
 # メインコンテンツ
-col_img, col1, col2, col3, col4 = st.columns([1.2, 0.7, 0.7, 0.7, 0.7])
+col_img, col1, col2, col3, col4 = st.columns([1.2, 1.0, 1.0, 1.0, 1.0])
 
 with col_img:
     # 画像アップロード
