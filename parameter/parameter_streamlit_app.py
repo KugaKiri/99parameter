@@ -6,15 +6,31 @@ import io
 
 st.set_page_config(layout="wide")
 
+MAX_WIDTH_PX = 1200
+
 st.markdown(
-    """
+    f"""
     <style>
-    .skill-row-label {
+    .block-container {{
+        max-width: {MAX_WIDTH_PX}px;
+        padding-top: 1.5rem;
+    }}
+    .skill-row-label {{
         display: flex;
         align-items: center;
         height: 2.4rem;
         line-height: 1.2;
-    }
+    }}
+    .group-header {{
+        font-size: 1.5rem;
+        font-weight: 700;
+        line-height: 1.2;
+        margin: 0.1rem 0 0.3rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 2.2rem;
+    }}
     </style>
     """,
     unsafe_allow_html=True
@@ -77,7 +93,7 @@ def validate_input(input_string):
     else:
         return False
 
-def create_image(values, checks, filename, charactor_type, uploaded_file):
+def create_image(values, checks, filename, charactor_type, uploaded_file, swap_layout=False):
     """
     入力された値とチェック状態から画像を生成する関数
     左側：アップロード画像、分類、キャラ名
@@ -104,14 +120,14 @@ def create_image(values, checks, filename, charactor_type, uploaded_file):
     }
     
     # 全体の寸法設定
-    left_width = 310    # 左側（アップロード画像 + キャラ情報）
-    right_width = 500   # 右側（能力値情報）
-    total_width = left_width + right_width
+    image_area_width = 300    # 画像 + キャラ情報の幅
+    stats_area_width = 500    # 能力値情報の幅
+    total_width = image_area_width + stats_area_width
     
     # 各セクションの高さ
     img_target_height = 430      # 画像の高さ
     char_info_height = 90        # 分類とキャラ名の高さ
-    content_height = 520         # 能力値情報の高さ
+    content_height = 500         # 能力値情報の高さ
     
     # 左側全体の高さ
     left_total_height = img_target_height + char_info_height
@@ -127,8 +143,8 @@ def create_image(values, checks, filename, charactor_type, uploaded_file):
         target_width = int(img_target_height * aspect_ratio)
         
         # 幅が左側の幅を超える場合は制限
-        if target_width > left_width:
-            target_width = left_width
+        if target_width > image_area_width:
+            target_width = image_area_width
         
         uploaded_img = uploaded_img.resize((target_width, img_target_height), Image.Resampling.LANCZOS)
     else:
@@ -144,39 +160,47 @@ def create_image(values, checks, filename, charactor_type, uploaded_file):
     font_small = load_font(28)
     font_tiny = load_font(20)
     
-    # 左側にアップロード画像を配置（中央揃え）
+    # 左右の配置を決定
+    if swap_layout:
+        stats_area_x = 0
+        image_area_x = stats_area_width
+    else:
+        image_area_x = 0
+        stats_area_x = image_area_width
+
+    # 画像エリアにアップロード画像を配置（中央揃え）
     if uploaded_img:
-        left_x = (left_width - uploaded_img.width) // 2
+        left_x = image_area_x + (image_area_width - uploaded_img.width) // 2
         img.paste(uploaded_img, (left_x, 0))
     
     # 左側の下部にキャラクター情報を表示
     info_y = img_target_height + 10
-    
+
     # キャラクター分類を表示
     charactor_type_str = "巫覡" if not charactor_type else "付喪神"
-    draw.text((20, info_y), f"{charactor_type_str}", font=font_small, fill="black")
-    
+    draw.text((image_area_x + 20, info_y), f"{charactor_type_str}", font=font_small, fill="black")
+
     # キャラ名を表示
     char_name = filename if filename else "No Name"
     char_name_text = f"{char_name}"
-    
+
     # テキスト幅をチェック
     text_bbox = draw.textbbox((0, 0), char_name_text, font=font_small)
     text_width = text_bbox[2] - text_bbox[0]
-    
+
     # 利用可能な幅（左側のスペース）
-    available_width = left_width - 40
-    
+    available_width = image_area_width - 40
+
     if text_width > available_width:
         # フォントサイズを縮小
-        draw.text((20, info_y + 40), char_name_text, font=font_tiny, fill="black")
+        draw.text((image_area_x + 20, info_y + 40), char_name_text, font=font_tiny, fill="black")
     else:
-        draw.text((20, info_y + 40), char_name_text, font=font_small, fill="black")
+        draw.text((image_area_x + 20, info_y + 40), char_name_text, font=font_small, fill="black")
     
     # 右側に能力値情報を描画
-    y_pos = 30
+    y_pos = 20
     line_height = 60
-    right_start_x = left_width + 20
+    right_start_x = stats_area_x + 20
     
     for group_key in ['u', 'v', 'w', 'x']:
         group_data = groups[group_key]
@@ -212,7 +236,7 @@ def create_image(values, checks, filename, charactor_type, uploaded_file):
     return img_bytes, filename
 
 # Streamlitアプリ
-st.title("ツクモツムギ-能力値/技能-画像出力 Ver3.0.0")
+st.title("ツクモツムギ-能力値画像出力-Webアプリテスト版")
 
 if not FONT_PATH:
     st.warning("日本語フォントが見つからないため、既定フォントで描画します。文字化けする場合はアプリ内のフォントファイルを配置するか、環境変数FONT_PATHで指定してください。")
@@ -243,8 +267,54 @@ def render_skill_row(label, check_key, value_key):
     with col_value:
         st.text_input(label, value=get_skill_value(value_key), disabled=True, label_visibility="collapsed")
 
+def render_group_header(title, value_key):
+    col_title, col_value = st.columns([1.0, 0.8])
+    with col_title:
+        st.markdown(f"<div class='group-header'>{title}</div>", unsafe_allow_html=True)
+    with col_value:
+        st.text_input(title, key=value_key, label_visibility="collapsed")
+
 # メインコンテンツ
-col_img, col1, col2, col3, col4 = st.columns([1.2, 0.4, 0.4, 0.4, 0.4])
+col_stats, col_img = st.columns([1.2, 0.9])
+
+with col_stats:
+    col1, col2, col3, col4 = st.columns([0.4, 0.4, 0.4, 0.4])
+
+    with col1:
+        render_group_header("身体", "u")
+        render_skill_row("★白兵", "check_a", "a")
+        render_skill_row("運動", "check_b", "b")
+        render_skill_row("頑健", "check_c", "c")
+        render_skill_row("操縦", "check_d", "d")
+        render_skill_row("知覚", "check_e", "e")
+
+    with col2:
+        render_group_header("技量", "v")
+        render_skill_row("★射撃", "check_f", "f")
+        render_skill_row("医療", "check_g", "g")
+        render_skill_row("隠密", "check_h", "h")
+        render_skill_row("工作", "check_i", "i")
+        render_skill_row("捜査", "check_j", "j")
+
+    with col3:
+        render_group_header("心魂", "w")
+        render_skill_row("★呪法", "check_k", "k")
+        render_skill_row("意志", "check_l", "l")
+        render_skill_row("看破", "check_m", "m")
+        render_skill_row("芸能", "check_n", "n")
+        render_skill_row("伝承", "check_o", "o")
+
+    with col4:
+        render_group_header("社会", "x")
+        render_skill_row("★策謀", "check_p", "p")
+        render_skill_row("教養", "check_q", "q")
+        render_skill_row("交渉", "check_r", "r")
+        render_skill_row("電脳", "check_s", "s")
+        render_skill_row("容姿", "check_t", "t")
+
+    st.radio("キャラクター分類", ["巫覡", "付喪神"], key='charactor_type')
+    st.text_input("キャラ名", key='filename')
+    st.checkbox("画像と能力値を左右入れ替える", key="swap_layout")
 
 with col_img:
     # 画像アップロード
@@ -260,44 +330,7 @@ with col_img:
             image = image.resize((new_width, max_height))
         st.image(image, caption="アップロードされた画像")
 
-with col1:
-    st.subheader("【身体】")
-    st.text_input("身体", key='u')
-    render_skill_row("★白兵", "check_a", "a")
-    render_skill_row("運動", "check_b", "b")
-    render_skill_row("頑健", "check_c", "c")
-    render_skill_row("操縦", "check_d", "d")
-    render_skill_row("知覚", "check_e", "e")
-
-with col2:
-    st.subheader("【技量】")
-    st.text_input("技量", key='v')
-    render_skill_row("★射撃", "check_f", "f")
-    render_skill_row("医療", "check_g", "g")
-    render_skill_row("隠密", "check_h", "h")
-    render_skill_row("工作", "check_i", "i")
-    render_skill_row("捜査", "check_j", "j")
-
-with col3:
-    st.subheader("【心魂】")
-    st.text_input("心魂", key='w')
-    render_skill_row("★呪法", "check_k", "k")
-    render_skill_row("意志", "check_l", "l")
-    render_skill_row("看破", "check_m", "m")
-    render_skill_row("芸能", "check_n", "n")
-    render_skill_row("伝承", "check_o", "o")
-
-with col4:
-    st.subheader("【社会】")
-    st.text_input("社会", key='x')
-    render_skill_row("★策謀", "check_p", "p")
-    render_skill_row("教養", "check_q", "q")
-    render_skill_row("交渉", "check_r", "r")
-    render_skill_row("電脳", "check_s", "s")
-    render_skill_row("容姿", "check_t", "t")
-
-st.radio("キャラクター分類", ["巫覡", "付喪神"], key='charactor_type')
-st.text_input("キャラ名", key='filename')
+st.divider()
 
 if st.button("画像作成"):
     # 最新の値を構築
@@ -315,7 +348,8 @@ if st.button("画像作成"):
         checks,
         st.session_state['filename'],
         charactor_type,
-        st.session_state.get('uploaded_file')
+        st.session_state.get('uploaded_file'),
+        st.session_state.get('swap_layout', False)
     )
     
     # 画像を表示
