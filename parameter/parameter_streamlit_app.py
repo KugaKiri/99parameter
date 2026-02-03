@@ -119,9 +119,9 @@ def create_image(values, checks, filename, charactor_type, uploaded_file, swap_l
         }
     }
     
-    # 全体の寸法設定
+    # 生成する画像の寸法設定
     image_area_width = 300    # 画像 + キャラ情報の幅
-    stats_area_width = 610    # 能力値情報の幅
+    stats_area_width = 530    # 能力値情報の幅
     total_width = image_area_width + stats_area_width
     
     # 各セクションの高さ
@@ -178,7 +178,7 @@ def create_image(values, checks, filename, charactor_type, uploaded_file, swap_l
 
     # キャラクター分類を表示
     charactor_type_str = "巫覡" if not charactor_type else "付喪神"
-    draw.text((image_area_x + 20, info_y), f"{charactor_type_str}", font=font_small, fill="black")
+    draw.text((image_area_x + 10, info_y), f"{charactor_type_str}", font=font_small, fill="black")
 
     # キャラ名を表示
     char_name = filename if filename else "No Name"
@@ -193,9 +193,9 @@ def create_image(values, checks, filename, charactor_type, uploaded_file, swap_l
 
     if text_width > available_width:
         # フォントサイズを縮小
-        draw.text((image_area_x + 20, info_y + 40), char_name_text, font=font_tiny, fill="black")
+        draw.text((image_area_x + 15, info_y + 40), char_name_text, font=font_tiny, fill="black")
     else:
-        draw.text((image_area_x + 20, info_y + 40), char_name_text, font=font_small, fill="black")
+        draw.text((image_area_x + 15, info_y + 40), char_name_text, font=font_small, fill="black")
     
     # 右側に能力値情報を描画
     y_pos = 20
@@ -225,7 +225,7 @@ def create_image(values, checks, filename, charactor_type, uploaded_file, swap_l
             # 次のスキル位置を計算
             text_bbox = draw.textbbox((0, 0), skill_text, font=font_medium)
             text_width = text_bbox[2] - text_bbox[0]
-            x_offset += text_width + 40
+            x_offset += text_width + 20
         
         y_pos += line_height
     
