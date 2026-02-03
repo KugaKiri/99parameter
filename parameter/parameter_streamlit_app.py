@@ -120,40 +120,42 @@ def create_image(values, checks, filename, charactor_type, uploaded_file, swap_l
     }
     
     # 生成する画像の寸法設定
-    image_area_width = 300    # 画像 + キャラ情報の幅
+    image_area_width = 320    # 画像 + キャラ情報の幅
     stats_area_width = 580    # 能力値情報の幅
     total_width = image_area_width + stats_area_width
     
     # 各セクションの高さ
-    img_target_height = 430      # 画像の高さ
-    char_info_height = 90        # 分類とキャラ名の高さ
-    content_height = 500         # 能力値情報の高さ
-    
-    # 左側全体の高さ
-    left_total_height = img_target_height + char_info_height
-    
-    # 全体の高さ = 左右で大きい方
-    total_img_height = max(left_total_height, content_height)
+    default_img_height = 440    # 画像がない場合の高さ
+    char_info_height = 90       # 分類とキャラ名の高さ
+    content_height = 500        # 能力値情報の高さ
     
     # アップロード画像の処理
     if uploaded_file:
         uploaded_img = Image.open(uploaded_file)
-        # アスペクト比を保持して、高さを430pxに合わせる
+        # アスペクト比を保持して、幅300px基準でリサイズ（高さ上限415px）
         aspect_ratio = uploaded_img.width / uploaded_img.height
-        target_width = int(img_target_height * aspect_ratio)
-        
-        # 幅が左側の幅を超える場合は制限
-        if target_width > image_area_width:
-            target_width = image_area_width
-        
-        uploaded_img = uploaded_img.resize((target_width, img_target_height), Image.Resampling.LANCZOS)
+        target_width = image_area_width
+        target_height = int(target_width / aspect_ratio)
+        max_height = 390
+        if target_height > max_height:
+            target_height = max_height
+            target_width = int(target_height * aspect_ratio)
+        uploaded_img = uploaded_img.resize((target_width, target_height), Image.Resampling.LANCZOS)
+        img_target_height = target_height
     else:
         uploaded_img = None
+        img_target_height = default_img_height
     
+    # 左側全体の高さ
+    left_total_height = img_target_height + char_info_height
+
+    # 全体の高さ = 左右で大きい方
+    total_img_height = max(left_total_height, content_height)
+
     # 全体の画像を作成
     img = Image.new('RGBA', (total_width, total_img_height), (255, 255, 255, 255))
     draw = ImageDraw.Draw(img)
-    
+
     # フォント設定
     font_large = load_font(40)
     font_medium = load_font(35)
@@ -168,13 +170,22 @@ def create_image(values, checks, filename, charactor_type, uploaded_file, swap_l
         image_area_x = 0
         stats_area_x = image_area_width
 
+    # ここでは折り返し計算は行わない
+
     # 画像エリアにアップロード画像を配置（中央揃え）
+    image_area_height = total_img_height - char_info_height
     if uploaded_img:
+        # 透過PNGは白背景で合成して透過を防ぐ
+        uploaded_img = uploaded_img.convert("RGBA")
+        white_bg = Image.new("RGBA", uploaded_img.size, (255, 255, 255, 255))
+        uploaded_img = Image.alpha_composite(white_bg, uploaded_img)
+
         left_x = image_area_x + (image_area_width - uploaded_img.width) // 2
-        img.paste(uploaded_img, (left_x, 0))
+        top_y = max(0, (image_area_height - uploaded_img.height) // 2)
+        img.paste(uploaded_img, (left_x, top_y))
     
     # 左側の下部にキャラクター情報を表示
-    info_y = img_target_height + 10
+    info_y = image_area_height + 10
 
     # キャラクター分類を表示
     charactor_type_str = "巫覡" if not charactor_type else "付喪神"
@@ -327,12 +338,15 @@ with col_img:
     st.session_state['uploaded_file'] = uploaded_file
     if uploaded_file is not None:
         image = Image.open(uploaded_file)
-        # 高さ上限を500pxとし、幅をアスペクト比で調整
-        max_height = 500
-        if image.height > max_height:
-            aspect_ratio = image.width / image.height
-            new_width = int(max_height * aspect_ratio)
-            image = image.resize((new_width, max_height))
+        # 幅300px基準でアスペクト比を保持（高さ上限415px）
+        target_width = 300
+        aspect_ratio = image.width / image.height
+        new_height = int(target_width / aspect_ratio)
+        max_height = 415
+        if new_height > max_height:
+            new_height = max_height
+            target_width = int(new_height * aspect_ratio)
+        image = image.resize((target_width, new_height))
         st.image(image, caption="アップロードされた画像")
 
 st.divider()
