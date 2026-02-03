@@ -121,7 +121,7 @@ def create_image(values, checks, filename, charactor_type, uploaded_file, swap_l
     
     # 全体の寸法設定
     image_area_width = 300    # 画像 + キャラ情報の幅
-    stats_area_width = 500    # 能力値情報の幅
+    stats_area_width = 610    # 能力値情報の幅
     total_width = image_area_width + stats_area_width
     
     # 各セクションの高さ
