@@ -31,6 +31,11 @@ st.markdown(
         justify-content: center;
         height: 2.2rem;
     }}
+    /* 背景色/文字色/習得済色/透過率の行だけギャップを縮小 */
+    .color-controls + div[data-testid="stHorizontalBlock"] {{
+        gap: 0.2rem !important;
+        column-gap: 0.2rem !important;
+    }}
     </style>
     """,
     unsafe_allow_html=True
@@ -93,7 +98,7 @@ def validate_input(input_string):
     else:
         return False
 
-def create_image(values, checks, filename, charactor_type, uploaded_file, swap_layout=False):
+def create_image(values, checks, filename, charactor_type, uploaded_file, swap_layout=False, bg_color_hex="#FFFFFF", bg_alpha=100, text_color_hex="#000000", learned_color_hex="#FFA500"):
     """
     入力された値とチェック状態から画像を生成する関数
     左側：アップロード画像、分類、キャラ名
@@ -152,8 +157,27 @@ def create_image(values, checks, filename, charactor_type, uploaded_file, swap_l
     # 全体の高さ = 左右で大きい方
     total_img_height = max(left_total_height, content_height)
 
+    def hex_to_rgba(hex_color, alpha_percent):
+        hex_color = hex_color.lstrip('#')
+        r = int(hex_color[0:2], 16)
+        g = int(hex_color[2:4], 16)
+        b = int(hex_color[4:6], 16)
+        a = max(0, min(255, int(alpha_percent * 255 / 100)))
+        return (r, g, b, a)
+
+    def hex_to_rgb(hex_color):
+        hex_color = hex_color.lstrip('#')
+        r = int(hex_color[0:2], 16)
+        g = int(hex_color[2:4], 16)
+        b = int(hex_color[4:6], 16)
+        return (r, g, b)
+
+    bg_rgba = hex_to_rgba(bg_color_hex, bg_alpha)
+    text_rgb = hex_to_rgb(text_color_hex)
+    learned_rgb = hex_to_rgb(learned_color_hex)
+
     # 全体の画像を作成
-    img = Image.new('RGBA', (total_width, total_img_height), (255, 255, 255, 255))
+    img = Image.new('RGBA', (total_width, total_img_height), bg_rgba)
     draw = ImageDraw.Draw(img)
 
     # フォント設定
@@ -175,10 +199,10 @@ def create_image(values, checks, filename, charactor_type, uploaded_file, swap_l
     # 画像エリアにアップロード画像を配置（中央揃え）
     image_area_height = total_img_height - char_info_height
     if uploaded_img:
-        # 透過PNGは白背景で合成して透過を防ぐ
+        # 透過PNGは背景色で合成して透過を防ぐ
         uploaded_img = uploaded_img.convert("RGBA")
-        white_bg = Image.new("RGBA", uploaded_img.size, (255, 255, 255, 255))
-        uploaded_img = Image.alpha_composite(white_bg, uploaded_img)
+        bg_layer = Image.new("RGBA", uploaded_img.size, bg_rgba)
+        uploaded_img = Image.alpha_composite(bg_layer, uploaded_img)
 
         left_x = image_area_x + (image_area_width - uploaded_img.width) // 2
         top_y = max(0, (image_area_height - uploaded_img.height) // 2)
@@ -189,7 +213,7 @@ def create_image(values, checks, filename, charactor_type, uploaded_file, swap_l
 
     # キャラクター分類を表示
     charactor_type_str = "巫覡" if not charactor_type else "付喪神"
-    draw.text((image_area_x + 10, info_y), f"{charactor_type_str}", font=font_small, fill="black")
+    draw.text((image_area_x + 10, info_y), f"{charactor_type_str}", font=font_small, fill=text_rgb)
 
     # キャラ名を表示
     char_name = filename if filename else "No Name"
@@ -204,9 +228,9 @@ def create_image(values, checks, filename, charactor_type, uploaded_file, swap_l
 
     if text_width > available_width:
         # フォントサイズを縮小
-        draw.text((image_area_x + 15, info_y + 40), char_name_text, font=font_tiny, fill="black")
+        draw.text((image_area_x + 15, info_y + 40), char_name_text, font=font_tiny, fill=text_rgb)
     else:
-        draw.text((image_area_x + 15, info_y + 40), char_name_text, font=font_small, fill="black")
+        draw.text((image_area_x + 15, info_y + 40), char_name_text, font=font_small, fill=text_rgb)
     
     # 右側に能力値情報を描画
     y_pos = 20
@@ -218,14 +242,14 @@ def create_image(values, checks, filename, charactor_type, uploaded_file, swap_l
         # グループタイトル: 【身体】：数値
         group_value = values.get(group_key, '')
         group_title = f"【{group_data['name']}】：{group_value}"
-        draw.text((right_start_x, y_pos), group_title, font=font_large, fill="black")
+        draw.text((right_start_x, y_pos), group_title, font=font_large, fill=text_rgb)
         y_pos += line_height
         
         # スキル一覧を1行で表示（各スキルの数値を含む）
         x_offset = right_start_x
         for skill_key, skill_name in group_data['skills']:
             is_checked = checks.get(skill_key, False)
-            text_color = (255, 165, 0) if is_checked else (0, 0, 0)  # オレンジまたは黒
+            text_color = learned_rgb if is_checked else text_rgb  # 習得済色または指定色
             
             # 各スキルの数値を計算（グループ値+チェック時+1）
             base_value = int(group_value) if group_value else 0
@@ -252,7 +276,7 @@ def create_image(values, checks, filename, charactor_type, uploaded_file, swap_l
     return img_bytes, filename
 
 # Streamlitアプリ
-st.title("ツクモツムギ-能力値画像出力-Webアプリテスト版")
+st.title("ツクモツムギ-能力値画像出力-Webアプリ-β版")
 
 if not FONT_PATH:
     st.warning("日本語フォントが見つからないため、既定フォントで描画します。文字化けする場合はアプリ内のフォントファイルを配置するか、環境変数FONT_PATHで指定してください。")
@@ -330,6 +354,16 @@ with col_stats:
 
     st.radio("キャラクター分類", ["巫覡", "付喪神"], key='charactor_type')
     st.text_input("キャラ名", key='filename')
+    st.markdown("<div class='color-controls'></div>", unsafe_allow_html=True)
+    col_bg_color, col_text_color, col_learned_color, col_bg_alpha = st.columns([0.45, 0.45, 0.55, 1.1], gap="small")
+    with col_bg_color:
+        bg_color_hex = st.color_picker("背景色", value="#FFFFFF")
+    with col_text_color:
+        text_color_hex = st.color_picker("文字色", value="#000000")
+    with col_learned_color:
+        learned_color_hex = st.color_picker("習得済色", value="#FFA500")
+    with col_bg_alpha:
+        bg_alpha = st.slider("背景透過率(0=完全透明, 100=不透明)", min_value=0, max_value=100, value=100, step=5)
     st.checkbox("画像と能力値を左右入れ替え画像生成(デフォルト：画像|能力値)", key="swap_layout")
 
 with col_img:
@@ -368,7 +402,11 @@ if st.button("画像作成"):
         st.session_state['filename'],
         charactor_type,
         st.session_state.get('uploaded_file'),
-        st.session_state.get('swap_layout', False)
+        st.session_state.get('swap_layout', False),
+        bg_color_hex,
+        bg_alpha,
+        text_color_hex,
+        learned_color_hex
     )
     
     # 画像を表示
