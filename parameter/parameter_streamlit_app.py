@@ -276,7 +276,7 @@ def create_image(values, checks, filename, charactor_type, uploaded_file, swap_l
     return img_bytes, filename
 
 # Streamlitアプリ
-st.title("ツクモツムギ-能力値画像出力-Webアプリ-β版")
+st.title("ツクモツムギ-能力値画像出力-Webアプリ-βテスト版")
 
 if not FONT_PATH:
     st.warning("日本語フォントが見つからないため、既定フォントで描画します。文字化けする場合はアプリ内のフォントファイルを配置するか、環境変数FONT_PATHで指定してください。")
