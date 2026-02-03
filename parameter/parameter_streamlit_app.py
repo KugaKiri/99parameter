@@ -210,15 +210,20 @@ def create_image(values, checks, filename, charactor_type, uploaded_file, swap_l
         draw.text((right_start_x, y_pos), group_title, font=font_large, fill="black")
         y_pos += line_height
         
-        # スキル一覧を1行で表示
+        # スキル一覧を1行で表示（各スキルの数値を含む）
         x_offset = right_start_x
         for skill_key, skill_name in group_data['skills']:
             is_checked = checks.get(skill_key, False)
             text_color = (255, 165, 0) if is_checked else (0, 0, 0)  # オレンジまたは黒
             
-            draw.text((x_offset, y_pos), skill_name, font=font_medium, fill=text_color)
+            # 各スキルの数値を計算（グループ値+チェック時+1）
+            base_value = int(group_value) if group_value else 0
+            skill_value = base_value + 1 if is_checked else base_value
+            skill_text = f"{skill_name}:{skill_value}"
+            
+            draw.text((x_offset, y_pos), skill_text, font=font_medium, fill=text_color)
             # 次のスキル位置を計算
-            text_bbox = draw.textbbox((0, 0), skill_name, font=font_medium)
+            text_bbox = draw.textbbox((0, 0), skill_text, font=font_medium)
             text_width = text_bbox[2] - text_bbox[0]
             x_offset += text_width + 40
         
@@ -314,11 +319,11 @@ with col_stats:
 
     st.radio("キャラクター分類", ["巫覡", "付喪神"], key='charactor_type')
     st.text_input("キャラ名", key='filename')
-    st.checkbox("画像と能力値を左右入れ替える", key="swap_layout")
+    st.checkbox("画像と能力値を左右入れ替え画像生成(デフォルト：画像|能力値)", key="swap_layout")
 
 with col_img:
     # 画像アップロード
-    uploaded_file = st.file_uploader("キャラ立ち絵※一時表示用のため保存されません。　また、300x500以内の画像に限ります。", type=["png", "jpg", "jpeg"], help="PNG, JPG, JPEG形式の画像を選択してください (最大200MB)")
+    uploaded_file = st.file_uploader("使用するキャラ立ち絵※一時表示用のためネットワーク上には保存されません。\nまた、300x500以内の画像に限ります。", type=["png", "jpg", "jpeg"], help="PNG, JPG, JPEG形式の画像を選択してください (最大200MB)")
     st.session_state['uploaded_file'] = uploaded_file
     if uploaded_file is not None:
         image = Image.open(uploaded_file)
