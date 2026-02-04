@@ -98,18 +98,18 @@ APP_FONT_PATH = os.path.join(ASSETS_FONTS_DIR, "NotoSansJP-Regular.ttf")
 FONT_PATH = APP_FONT_PATH if os.path.exists(APP_FONT_PATH) else None
 FONT_SIZE_OVERRIDES = {
     "DelaGothicOne-Regular": 20,
-    "DotGothic16-Regular": 24,
-    "HachiMaruPop-Regular": 23,
+    "DotGothic16-Regular": 23,
+    "HachiMaruPop-Regular": 22,
     "KaiseiTokumin-Regular": 24,
-    "KosugiMaru-Regular": 24,
+    "KosugiMaru-Regular": 23,
     "MPLUSRounded1c-Regular": 23,
     "NotoSansJP-Regular": 26,
     "NotoSerifJP-Regular": 26,
-    "ReggaeOne-Regular": 22,
-    "WDXLLubrifontJPN-Regular": 28,
+    "ReggaeOne-Regular": 21,
+    "WDXLLubrifontJPN-Regular": 30,
     "YujiMai-Regular": 22,
     "ZenKurenaido-Regular": 26,
-    "ZenMaruGothic-Regular": 27,
+    "ZenMaruGothic-Regular": 26,
 }
 SAMPLE_TEXT_FOR_MEASURE = "あいうえおアイウエオ漢字"
 TARGET_FONT_SIZES = [40, 35, 28, 20]
@@ -559,7 +559,10 @@ with col_img:
     preview_checks = {key: st.session_state.get(f'check_{key}', False) for key in 'abcdefghijklmnopqrst'}
     preview_charactor_type = st.session_state.get('charactor_type') == "付喪神"
     preview_font_name = st.session_state.get('font_name', font_options[0])
-    preview_font_scale = st.session_state.get('font_css_sizes', {}).get(preview_font_name, 28) / 28
+    preview_font_scale = st.session_state.get('font_css_sizes', {}).get(
+        preview_font_name,
+        FONT_SIZE_OVERRIDES.get(preview_font_name, 28)
+    ) / 28
     preview_img_bytes, _ = create_image(
         preview_values,
         preview_checks,
@@ -591,7 +594,10 @@ if st.button("画像作成"):
     # 画像作成
     charactor_type = st.session_state['charactor_type'] == "付喪神"
     output_font_name = st.session_state.get('font_name', font_options[0])
-    output_font_scale = st.session_state.get('font_css_sizes', {}).get(output_font_name, 28) / 28
+    output_font_scale = st.session_state.get('font_css_sizes', {}).get(
+        output_font_name,
+        FONT_SIZE_OVERRIDES.get(output_font_name, 28)
+    ) / 28
     img_bytes, filename = create_image(
         values_final,
         checks,
