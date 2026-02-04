@@ -3,14 +3,44 @@ from PIL import Image, ImageDraw, ImageFont
 import os
 import re
 import io
+import base64
+from functools import lru_cache
 
 st.set_page_config(layout="wide")
 
 MAX_WIDTH_PX = 1200
 
+standard_fonts = ["Noto Sans JP"]
+all_fonts = standard_fonts
+
 st.markdown(
     f"""
     <style>
+    @font-face {{
+        font-family: 'Noto Sans JP';
+        src: url('assets/fonts/NotoSansJP-Regular.ttf');
+    }}
+
+    /* 全体を囲むラッパーの最大幅を固定し、中央寄せする */
+    .main-tool-wrapper {{
+        max-width: {MAX_WIDTH_PX}px;
+        margin: 0 auto; /* 画面の中央に配置 */
+    }}
+
+    /* プレビュー表示用の共通スタイル */
+    .preview-container {{
+        border: 1px solid #ddd;
+        padding: 5px;
+        border-radius: 10px;
+        background-color: #ffffff;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        height: 60px;
+        display: flex;
+        align-items: center;
+        text-align: left;
+    }}
+
+    /* 以下、既存の微調整CSS */
     .block-container {{
         max-width: {MAX_WIDTH_PX}px;
         padding-top: 1.5rem;
@@ -36,57 +66,146 @@ st.markdown(
         gap: 0.2rem !important;
         column-gap: 0.2rem !important;
     }}
+    .font-preview-container {{
+        border: none;
+        padding: 5px;
+        border-radius: 10px;
+        background-color: transparent;
+        box-shadow: none;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        text-align: left;
+        margin-bottom: 0.8rem;
+    }}
+
+    .font-preview-container p {{
+        margin: 0 !important;
+        padding: 0 10px !important;
+        width: 100%;
+    }}
     </style>
     """,
     unsafe_allow_html=True
 )
 
-def resolve_font_path(app_font_path=None):
-    """日本語表示を想定したフォントパスを解決する"""
-    if app_font_path and os.path.exists(app_font_path):
-        return app_font_path
-
-    env_font = os.environ.get("FONT_PATH")
-    if env_font and os.path.exists(env_font):
-        return env_font
-
-    windows_fonts = os.path.join(os.environ.get("WINDIR", r"C:\Windows"), "Fonts")
-    candidates = [
-        os.path.join(windows_fonts, "YuGothM.ttc"),
-        os.path.join(windows_fonts, "YuGothB.ttc"),
-        os.path.join(windows_fonts, "meiryo.ttc"),
-        os.path.join(windows_fonts, "meiryo.ttf"),
-        os.path.join(windows_fonts, "msgothic.ttc"),
-        os.path.join(windows_fonts, "MSMINCHO.TTC"),
-        os.path.join(windows_fonts, "AdobeFangsongStd-Regular.otf"),
-        "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
-        "/usr/share/fonts/opentype/noto/NotoSansCJKjp-Regular.otf",
-        "/usr/share/fonts/truetype/noto/NotoSansJP-Regular.otf",
-        "/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc",
-        "/Library/Fonts/ヒラギノ角ゴシック W3.ttc",
-    ]
-
-    for path in candidates:
-        if os.path.exists(path):
-            return path
-    return None
-
-
-APP_FONT_PATH = os.path.join(
+ASSETS_FONTS_DIR = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
     "assets",
-    "fonts",
-    "WDXLLubrifontJPN-Regular.ttf"
+    "fonts"
 )
-FONT_PATH = resolve_font_path(APP_FONT_PATH)
+APP_FONT_PATH = os.path.join(ASSETS_FONTS_DIR, "NotoSansJP-Regular.ttf")
+FONT_PATH = APP_FONT_PATH if os.path.exists(APP_FONT_PATH) else None
+FONT_SIZE_OVERRIDES = {
+    "DelaGothicOne-Regular": 20,
+    "DotGothic16-Regular": 24,
+    "HachiMaruPop-Regular": 23,
+    "KaiseiTokumin-Regular": 24,
+    "KosugiMaru-Regular": 24,
+    "MPLUSRounded1c-Regular": 23,
+    "NotoSansJP-Regular": 26,
+    "NotoSerifJP-Regular": 26,
+    "ReggaeOne-Regular": 22,
+    "WDXLLubrifontJPN-Regular": 28,
+    "YujiMai-Regular": 22,
+    "ZenKurenaido-Regular": 26,
+    "ZenMaruGothic-Regular": 27,
+}
+SAMPLE_TEXT_FOR_MEASURE = "あいうえおアイウエオ漢字"
+TARGET_FONT_SIZES = [40, 35, 28, 20]
 
-def load_font(size):
+def list_local_fonts(fonts_dir):
+    fonts = {}
+    if not os.path.isdir(fonts_dir):
+        return fonts
+    for filename in os.listdir(fonts_dir):
+        _, ext = os.path.splitext(filename)
+        if ext.lower() in {".ttf", ".otf", ".ttc"}:
+            display_name = os.path.splitext(filename)[0]
+            fonts[display_name] = os.path.join(fonts_dir, filename)
+    return dict(sorted(fonts.items(), key=lambda item: item[0].lower()))
+
+LOCAL_FONTS = list_local_fonts(ASSETS_FONTS_DIR)
+
+def load_font(font_path, size):
+    if font_path and os.path.exists(font_path):
+        try:
+            return ImageFont.truetype(font_path, size)
+        except OSError:
+            pass
     if FONT_PATH:
         try:
             return ImageFont.truetype(FONT_PATH, size)
         except OSError:
             pass
     return ImageFont.load_default()
+
+def load_specific_font(font_path, size):
+    if not font_path or not os.path.exists(font_path):
+        return None
+    try:
+        return ImageFont.truetype(font_path, size)
+    except OSError:
+        return None
+
+@lru_cache(maxsize=256)
+def get_font_height(font_path, size):
+    font = load_specific_font(font_path, size)
+    if font is None and FONT_PATH and font_path != FONT_PATH:
+        font = load_specific_font(FONT_PATH, size)
+    if font is None:
+        font = ImageFont.load_default()
+    dummy_img = Image.new("RGB", (1, 1))
+    draw = ImageDraw.Draw(dummy_img)
+    bbox = draw.textbbox((0, 0), SAMPLE_TEXT_FOR_MEASURE, font=font)
+    height = bbox[3] - bbox[1]
+    return max(1, height)
+
+REFERENCE_HEIGHTS = {size: get_font_height(FONT_PATH, size) for size in TARGET_FONT_SIZES}
+
+def compute_normalized_size(font_path, base_size, target_height):
+    current_height = get_font_height(font_path, base_size)
+    if not current_height:
+        return base_size
+    scale = target_height / current_height
+    return max(1, int(round(base_size * scale)))
+
+def load_normalized_font(font_path, base_size, target_height, font_scale=1.0):
+    normalized_size = compute_normalized_size(font_path, base_size, target_height)
+    normalized_size = max(1, int(round(normalized_size * font_scale)))
+    return load_font(font_path, normalized_size)
+
+def build_font_face_css(font_path, font_family):
+    if not font_path or not os.path.exists(font_path):
+        return ""
+    ext = os.path.splitext(font_path)[1].lower()
+    if ext not in {".ttf", ".otf"}:
+        return ""
+    try:
+        with open(font_path, "rb") as font_file:
+            font_data = base64.b64encode(font_file.read()).decode("utf-8")
+        mime = "font/ttf" if ext == ".ttf" else "font/otf"
+        format_name = "truetype" if ext == ".ttf" else "opentype"
+        return f"""
+        @font-face {{
+            font-family: '{font_family}';
+            src: url(data:{mime};base64,{font_data}) format('{format_name}');
+            font-weight: normal;
+            font-style: normal;
+        }}
+        """
+    except OSError:
+        return ""
+
+def hex_to_rgba_css(hex_color, alpha_percent):
+    hex_color = hex_color.lstrip('#')
+    if len(hex_color) != 6:
+        return "rgba(255,255,255,1)"
+    r = int(hex_color[0:2], 16)
+    g = int(hex_color[2:4], 16)
+    b = int(hex_color[4:6], 16)
+    alpha = max(0, min(100, int(alpha_percent))) / 100
+    return f"rgba({r}, {g}, {b}, {alpha})"
 
 def validate_input(input_string):
     """
@@ -98,7 +217,7 @@ def validate_input(input_string):
     else:
         return False
 
-def create_image(values, checks, filename, charactor_type, uploaded_file, swap_layout=False, bg_color_hex="#FFFFFF", bg_alpha=100, text_color_hex="#000000", learned_color_hex="#FFA500"):
+def create_image(values, checks, filename, charactor_type, uploaded_file, font_path=None, font_scale=1.0, swap_layout=False, bg_color_hex="#FFFFFF", bg_alpha=100, text_color_hex="#000000", learned_color_hex="#FFA500"):
     """
     入力された値とチェック状態から画像を生成する関数
     左側：アップロード画像、分類、キャラ名
@@ -126,7 +245,7 @@ def create_image(values, checks, filename, charactor_type, uploaded_file, swap_l
     
     # 生成する画像の寸法設定
     image_area_width = 320    # 画像 + キャラ情報の幅
-    stats_area_width = 580    # 能力値情報の幅
+    stats_area_width = 690    # 能力値情報の幅
     total_width = image_area_width + stats_area_width
     
     # 各セクションの高さ
@@ -181,10 +300,10 @@ def create_image(values, checks, filename, charactor_type, uploaded_file, swap_l
     draw = ImageDraw.Draw(img)
 
     # フォント設定
-    font_large = load_font(40)
-    font_medium = load_font(35)
-    font_small = load_font(28)
-    font_tiny = load_font(20)
+    font_large = load_normalized_font(font_path, 40, REFERENCE_HEIGHTS[40], font_scale)
+    font_medium = load_normalized_font(font_path, 35, REFERENCE_HEIGHTS[35], font_scale)
+    font_small = load_normalized_font(font_path, 28, REFERENCE_HEIGHTS[28], font_scale)
+    font_tiny = load_normalized_font(font_path, 20, REFERENCE_HEIGHTS[20], font_scale)
     
     # 左右の配置を決定
     if swap_layout:
@@ -276,7 +395,7 @@ def create_image(values, checks, filename, charactor_type, uploaded_file, swap_l
     return img_bytes, filename
 
 # Streamlitアプリ
-st.title("ツクモツムギ-能力値画像出力-Webアプリβテスト版")
+st.title("ツクモツムギ-能力値画像出力-WebAppβテスト版")
 
 if not FONT_PATH:
     st.warning("日本語フォントが見つからないため、既定フォントで描画します。文字化けする場合はアプリ内のフォントファイルを配置するか、環境変数FONT_PATHで指定してください。")
@@ -286,6 +405,12 @@ st.session_state.setdefault('values', {key: '' for key in 'abcdefghijklmnopqrstu
 st.session_state.setdefault('checks', {key: False for key in 'abcdefghijklmnopqrst'})
 st.session_state.setdefault('filename', '')
 st.session_state.setdefault('charactor_type', "巫覡")  # 初期値: 巫覡
+st.session_state.setdefault('font_css_sizes', {})
+font_options = list(LOCAL_FONTS.keys())
+if not font_options:
+    font_options = ["既定フォント"]
+default_font_name = "NotoSansJP-Regular" if "NotoSansJP-Regular" in font_options else font_options[0]
+st.session_state.setdefault('font_name', default_font_name)
 
 def get_skill_value(key):
     group_key = {'a':'u', 'b':'u', 'c':'u', 'd':'u', 'e':'u',
@@ -352,8 +477,6 @@ with col_stats:
         render_skill_row("電脳", "check_s", "s")
         render_skill_row("容姿", "check_t", "t")
 
-    st.radio("キャラクター分類", ["巫覡", "付喪神"], key='charactor_type')
-    st.text_input("キャラ名", key='filename')
     st.markdown("<div class='color-controls'></div>", unsafe_allow_html=True)
     col_bg_color, col_text_color, col_learned_color, col_bg_alpha = st.columns([0.45, 0.45, 0.55, 1.1], gap="small")
     with col_bg_color:
@@ -364,6 +487,54 @@ with col_stats:
         learned_color_hex = st.color_picker("習得済色", value="#FFA500")
     with col_bg_alpha:
         bg_alpha = st.slider("背景透過率(0=完全透明, 100=不透明)", min_value=0, max_value=100, value=100, step=5)
+
+    col_font_select, col_font_preview = st.columns([0.40, 0.6], gap="small")
+    with col_font_select:
+        selected_font_name = st.selectbox("フォント", font_options, key="font_name")
+        selected_font_path = LOCAL_FONTS.get(selected_font_name)
+        st.session_state['font_path'] = selected_font_path
+        # default_css_size = FONT_SIZE_OVERRIDES.get(selected_font_name, 28)
+        # current_css_size = st.session_state.get('font_css_sizes', {}).get(selected_font_name, default_css_size)
+        # css_font_size = st.number_input(
+        #     "プレビュー文字サイズ(px)",
+        #     min_value=10,
+        #     max_value=80,
+        #     value=int(current_css_size),
+        #     step=1,
+        #     key=f"css_font_size_{selected_font_name}"
+        # )
+        # st.session_state['font_css_sizes'][selected_font_name] = css_font_size
+
+    with col_font_preview:
+        selected_font_name = st.session_state.get('font_name', font_options[0])
+        selected_font_path = st.session_state.get('font_path') or LOCAL_FONTS.get(selected_font_name)
+        preview_font_family = f"preview-{selected_font_name}"
+        font_face_css = build_font_face_css(selected_font_path, preview_font_family)
+        if font_face_css:
+            st.markdown(f"<style>{font_face_css}</style>", unsafe_allow_html=True)
+        else:
+            preview_font_family = selected_font_name
+
+        preview_text = "巫覡と付喪神"
+        preview_html = preview_text.replace("付喪", f"<span style='color:{learned_color_hex};'>付喪</span>")
+        preview_bg_rgba = hex_to_rgba_css(bg_color_hex, bg_alpha)
+        preview_font_size = st.session_state.get('font_css_sizes', {}).get(
+            selected_font_name,
+            FONT_SIZE_OVERRIDES.get(selected_font_name, 28)
+        )
+        st.markdown(
+            f"""
+            <div class="font-preview-container" style="background-color: {preview_bg_rgba};">
+                <p style="font-family: '{preview_font_family}', sans-serif; font-size: {preview_font_size}px; color: {text_color_hex};">
+                    {preview_html}
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    st.radio("キャラクター分類", ["巫覡", "付喪神"], key='charactor_type')
+    st.text_input("キャラ名", key='filename')
     st.checkbox("画像と能力値を左右入れ替え画像生成(デフォルト：画像|能力値)", key="swap_layout")
 
 with col_img:
@@ -383,6 +554,29 @@ with col_img:
         image = image.resize((target_width, new_height))
         st.image(image, caption="アップロードされた画像")
 
+    # プレビュー（現在の設定で画像を生成）
+    preview_values = {group_key: st.session_state.get(group_key, '') for group_key in 'uvwx'}
+    preview_checks = {key: st.session_state.get(f'check_{key}', False) for key in 'abcdefghijklmnopqrst'}
+    preview_charactor_type = st.session_state.get('charactor_type') == "付喪神"
+    preview_font_name = st.session_state.get('font_name', font_options[0])
+    preview_font_scale = st.session_state.get('font_css_sizes', {}).get(preview_font_name, 28) / 28
+    preview_img_bytes, _ = create_image(
+        preview_values,
+        preview_checks,
+        st.session_state.get('filename', ''),
+        preview_charactor_type,
+        st.session_state.get('uploaded_file'),
+        st.session_state.get('font_path'),
+        preview_font_scale,
+        st.session_state.get('swap_layout', False),
+        bg_color_hex,
+        bg_alpha,
+        text_color_hex,
+        learned_color_hex
+    )
+    preview_img_bytes.seek(0)
+    st.image(preview_img_bytes, caption="プレビュー")
+
 st.divider()
 
 if st.button("画像作成"):
@@ -396,12 +590,16 @@ if st.button("画像作成"):
     
     # 画像作成
     charactor_type = st.session_state['charactor_type'] == "付喪神"
+    output_font_name = st.session_state.get('font_name', font_options[0])
+    output_font_scale = st.session_state.get('font_css_sizes', {}).get(output_font_name, 28) / 28
     img_bytes, filename = create_image(
         values_final,
         checks,
         st.session_state['filename'],
         charactor_type,
         st.session_state.get('uploaded_file'),
+        st.session_state.get('font_path'),
+        output_font_scale,
         st.session_state.get('swap_layout', False),
         bg_color_hex,
         bg_alpha,
