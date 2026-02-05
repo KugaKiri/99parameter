@@ -582,47 +582,28 @@ with col_img:
 
 st.divider()
 
-if st.button("画像作成"):
-    # 最新の値を構築
-    values_final = {}
-    for group_key in 'uvwx':
-        values_final[group_key] = st.session_state.get(group_key, '')
-    
-    # チェック状態を取得
-    checks = {key: st.session_state.get(f'check_{key}', False) for key in 'abcdefghijklmnopqrst'}
-    
-    # 画像作成
-    charactor_type = st.session_state['charactor_type'] == "付喪神"
-    output_font_name = st.session_state.get('font_name', font_options[0])
-    output_font_scale = st.session_state.get('font_css_sizes', {}).get(
-        output_font_name,
-        FONT_SIZE_OVERRIDES.get(output_font_name, 28)
-    ) / 28
-    img_bytes, filename = create_image(
-        values_final,
-        checks,
-        st.session_state['filename'],
-        charactor_type,
-        st.session_state.get('uploaded_file'),
-        st.session_state.get('font_path'),
-        output_font_scale,
-        st.session_state.get('swap_layout', False),
-        bg_color_hex,
-        bg_alpha,
-        text_color_hex,
-        learned_color_hex
-    )
-    
-    # 画像を表示
-    img_bytes.seek(0)
-    st.image(img_bytes, caption="生成された画像")
-    
-    # ダウンロードボタンを表示
-    img_bytes.seek(0)
-    st.download_button(
-        label="📥 画像をダウンロード",
-        data=img_bytes,
-        file_name=f"{filename}.png",
-        mime="image/png"
-    )
-    st.success("✅ 画像を生成しました。ダウンロードボタンから保存してください。")
+# ダウンロードボタンを常に表示（50%縮小版）
+preview_img_bytes.seek(0)
+download_filename = st.session_state.get('filename', '').strip()
+if not download_filename:
+    download_filename = "chara"
+
+# ダウンロード用に50%縮小した画像を作成
+preview_img_bytes.seek(0)
+preview_image = Image.open(preview_img_bytes)
+original_width, original_height = preview_image.size
+new_width = int(original_width * 0.5)
+new_height = int(original_height * 0.5)
+resized_image = preview_image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+
+# BytesIOに保存
+download_img_bytes = io.BytesIO()
+resized_image.save(download_img_bytes, format='PNG')
+download_img_bytes.seek(0)
+
+st.download_button(
+    label="📥 画像をダウンロード",
+    data=download_img_bytes,
+    file_name=f"{download_filename}.png",
+    mime="image/png"
+)
