@@ -400,7 +400,7 @@ def create_image(values, checks, filename, charactor_type, uploaded_file, font_p
     return img_bytes, filename
 
 # Streamlitアプリ
-st.title("ツクモツムギ-能力値画像出力-WebAppβテスト版")
+st.title("ツクモツムギ-能力値画像ジェネレーター")
 
 if not FONT_PATH:
     st.warning("日本語フォントが見つからないため、既定フォントで描画します。文字化けする場合はアプリ内のフォントファイルを配置するか、環境変数FONT_PATHで指定してください。")
@@ -410,14 +410,18 @@ with st.sidebar:
     st.markdown("""
     ### ℹ️ 使い方
     1. キャラクターの能力値を入力
-    2. 画像をアップロード（任意）
-    3. プレビューを確認
-    4. ダウンロードボタンで保存
+    2. 取得している技能にチェックを入れる
+    3. キャラクター分類とキャラクター名を入力する
+    4. 画像をアップロード（任意）
+    5. 使用するフォント、背景色、文字色、ハイライト、透過率を設定する
+    6. プレビューを確認
+    7. ダウンロードボタンで保存
     
     ### 🔒 プライバシー
     - アップロードされた画像はサーバーに保存されません
     - すべての処理はメモリ上で完了します
     - 個人情報は一切収集しません
+    - このアプリはオープンソースであり、コードはGitHubで公開されています
     """)
     
     # 以下はお好みでコメントを外して使用してください
@@ -636,8 +640,6 @@ with col_img:
     except Exception as e:
         st.error(f"❌ プレビュー生成に失敗しました: {str(e)}")
 
-st.divider()
-
 # ダウンロードボタンを常に表示（50%縮小版）
 if preview_img_bytes:
     preview_img_bytes.seek(0)
@@ -672,7 +674,7 @@ else:
 
 # フッター
 st.markdown("---")
-st.caption("ツクモツムギは現代日本を舞台にしたTRPGです | フォント: Google Fonts (OFL)")
+st.caption("本サイトは「倉樫 澄人、N.G.P.、新紀元社」が権利を有する「[怪異捜査RPG ツクモツムギ](https://r-r.arclight.co.jp/rpg/怪異捜査rpgツクモツムギ/)」の二次創作物です。")
+st.caption("プログラミング言語：Python3.13.9｜[GitHub](https://github.com/KugaKiri/Streamlit)｜使用フォント: Google Fonts (OFL)")
 # フッターのカスタマイズ例（コメントアウト）:
-# st.caption("© 2026 あなたの名前 | ツクモツムギ能力値画像ジェネレーター")
-# st.caption("[GitHub](https://github.com/KugaKiri/Streamlit) | [公式サイト](https://example.com)")
+st.caption("制作者：くがみ | ツクモツムギ-能力値画像ジェネレーター")
