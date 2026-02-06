@@ -205,6 +205,7 @@ program_icons/
 *.vs/
 *.slnx
 *.png
+*sample*
 >>>>>>> f1a77faaaa8b48d28c67fe4245f301e2cfafda14
 =======
 .history
