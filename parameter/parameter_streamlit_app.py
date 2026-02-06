@@ -516,6 +516,12 @@ with col_stats:
         render_skill_row("電脳", "check_s", "s")
         render_skill_row("容姿", "check_t", "t")
 
+    
+    col_char_type, col_char_name = st.columns([0.3, 0.7], gap="small")
+    with col_char_type:
+        st.radio("キャラクター分類", ["巫覡", "付喪神"], key="charactor_type", horizontal=True)
+    with col_char_name:
+        st.text_input("キャラ名", key="filename")
     st.markdown("<div class='color-controls'></div>", unsafe_allow_html=True)
     col_bg_color, col_text_color, col_learned_color, col_bg_alpha = st.columns([0.45, 0.45, 0.55, 1.1], gap="small")
     with col_bg_color:
@@ -532,17 +538,17 @@ with col_stats:
         selected_font_name = st.selectbox("フォント", font_options, key="font_name")
         selected_font_path = LOCAL_FONTS.get(selected_font_name)
         st.session_state['font_path'] = selected_font_path
-        default_css_size = FONT_SIZE_OVERRIDES.get(selected_font_name, 28)
-        current_css_size = st.session_state.get('font_css_sizes', {}).get(selected_font_name, default_css_size)
-        css_font_size = st.number_input(
-            "文字サイズ(px)",
-            min_value=10,
-            max_value=80,
-            value=int(current_css_size),
-            step=1,
-            key=f"css_font_size_{selected_font_name}"
-        )
-        st.session_state['font_css_sizes'][selected_font_name] = css_font_size
+        # default_css_size = FONT_SIZE_OVERRIDES.get(selected_font_name, 28)
+        # current_css_size = st.session_state.get('font_css_sizes', {}).get(selected_font_name, default_css_size)
+        # css_font_size = st.number_input(
+        #     "文字サイズ(px)",
+        #     min_value=10,
+        #     max_value=80,
+        #     value=int(current_css_size),
+        #     step=1,
+        #     key=f"css_font_size_{selected_font_name}"
+        # )
+        # st.session_state['font_css_sizes'][selected_font_name] = css_font_size
 
     with col_font_preview:
         selected_font_name = st.session_state.get('font_name', font_options[0])
@@ -571,10 +577,6 @@ with col_stats:
             """,
             unsafe_allow_html=True
         )
-
-    st.radio("キャラクター分類", ["巫覡", "付喪神"], key='charactor_type')
-    st.text_input("キャラ名", key='filename')
-    st.checkbox("画像と能力値を左右入れ替え画像生成(デフォルト：画像|能力値)", key="swap_layout")
 
 with col_img:
     # 画像アップロード
@@ -610,6 +612,7 @@ with col_img:
             st.error(f"❌ 画像の読み込みに失敗しました: {str(e)}")
             st.session_state['uploaded_file'] = None
 
+
     # プレビュー（現在の設定で画像を生成）
     preview_values = {group_key: st.session_state.get(group_key, '') for group_key in 'uvwx'}
     preview_checks = {key: st.session_state.get(f'check_{key}', False) for key in 'abcdefghijklmnopqrst'}
@@ -639,6 +642,9 @@ with col_img:
         st.image(preview_img_bytes, caption="プレビュー")
     except Exception as e:
         st.error(f"❌ プレビュー生成に失敗しました: {str(e)}")
+
+st.checkbox("画像と能力値を左右入れ替え画像生成(デフォルト：画像|能力値)", key="swap_layout")
+
 
 # ダウンロードボタンを常に表示（50%縮小版）
 if preview_img_bytes:
@@ -671,6 +677,8 @@ if preview_img_bytes:
         st.error(f"❌ ダウンロード用画像の生成に失敗しました: {str(e)}")
 else:
     st.info("プレビュー画像を生成してからダウンロードできます。")
+
+
 
 # フッター
 st.markdown("---")
