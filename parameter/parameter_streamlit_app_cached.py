@@ -4,6 +4,7 @@ import os
 import re
 import io
 import base64
+import hashlib
 from functools import lru_cache
 from pathlib import Path
 
@@ -125,7 +126,7 @@ def list_local_fonts(fonts_dir):
     for font_file in fonts_path.iterdir():
         if font_file.suffix.lower() in {".ttf", ".otf", ".ttc"}:
             display_name = font_file.stem
-            fonts[display_name] = str(fonts_dir)
+            fonts[display_name] = str(font_file)
 
     return dict(sorted(fonts.items(), key=lambda item: item[0].lower()))
 
@@ -220,6 +221,18 @@ def validate_input(input_string):
         return True
     else:
         return False
+
+def hash_uploaded_file(uploaded_file):
+    """
+    アップロードされたファイルのハッシュ値を計算する関数
+    キャッシュのキーとして使用
+    """
+    if uploaded_file is None:
+        return None
+    uploaded_file.seek(0)
+    file_hash = hashlib.md5(uploaded_file.read()).hexdigest()
+    uploaded_file.seek(0)  # ハッシュ計算後にシークを戻す
+    return file_hash
 
 def create_image(values, checks, filename, charactor_type, uploaded_file, font_path=None, font_scale=1.0, swap_layout=False, bg_color_hex="#FFFFFF", bg_alpha=100, text_color_hex="#000000", learned_color_hex="#FFA500"):
     """
@@ -399,8 +412,39 @@ def create_image(values, checks, filename, charactor_type, uploaded_file, font_p
     
     return img_bytes, filename
 
+@st.cache_data(show_spinner="🎨 画像を生成中...")
+def create_image_cached(
+    _values_tuple,
+    _checks_tuple,
+    filename,
+    charactor_type,
+    _uploaded_file_hash,
+    font_path,
+    font_scale,
+    swap_layout,
+    bg_color_hex,
+    bg_alpha,
+    text_color_hex,
+    learned_color_hex
+):
+    """
+    キャッシュ対応版の画像生成関数
+    辞書をタプルに変換して、キャッシュ可能な形式にする
+    """
+    # タプルを辞書に戻す
+    values = dict(_values_tuple)
+    checks = dict(_checks_tuple)
+    
+    # 元のcreate_image()を呼び出し
+    return create_image(
+        values, checks, filename, charactor_type,
+        st.session_state.get('uploaded_file'),
+        font_path, font_scale, swap_layout,
+        bg_color_hex, bg_alpha, text_color_hex, learned_color_hex
+    )
+
 # Streamlitアプリ
-st.title("ツクモツムギ-能力値画像出力-WebAppβテスト版")
+st.title("ツクモツムギ-能力値画像出力-WebAppβテスト版 [⚡キャッシュ版]")
 
 if not FONT_PATH:
     st.warning("日本語フォントが見つからないため、既定フォントで描画します。文字化けする場合はアプリ内のフォントファイルを配置するか、環境変数FONT_PATHで指定してください。")
@@ -419,6 +463,23 @@ with st.sidebar:
     - すべての処理はメモリ上で完了します
     - 個人情報は一切収集しません
     """)
+    
+    st.markdown("---")
+    
+    st.markdown("### ⚡ パフォーマンス")
+    if st.button("🗑️ キャッシュをクリア", help="画像生成のキャッシュをクリアします"):
+        st.cache_data.clear()
+        st.success("キャッシュをクリアしました！")
+        st.rerun()
+    
+    st.markdown("""
+    ### ℹ️ キャッシュについて
+    - 同じ設定で画像を生成する場合、キャッシュから高速表示されます
+    - 設定を変更すると新しく生成されます
+    - メモリ使用量が増える場合は、キャッシュをクリアしてください
+    """)
+    
+    st.markdown("---")
     
     # 以下はお好みでコメントを外して使用してください
     # st.markdown("""
@@ -528,17 +589,6 @@ with col_stats:
         selected_font_name = st.selectbox("フォント", font_options, key="font_name")
         selected_font_path = LOCAL_FONTS.get(selected_font_name)
         st.session_state['font_path'] = selected_font_path
-        # default_css_size = FONT_SIZE_OVERRIDES.get(selected_font_name, 28)
-        # current_css_size = st.session_state.get('font_css_sizes', {}).get(selected_font_name, default_css_size)
-        # css_font_size = st.number_input(
-        #     "プレビュー文字サイズ(px)",
-        #     min_value=10,
-        #     max_value=80,
-        #     value=int(current_css_size),
-        #     step=1,
-        #     key=f"css_font_size_{selected_font_name}"
-        # )
-        # st.session_state['font_css_sizes'][selected_font_name] = css_font_size
 
     with col_font_preview:
         selected_font_name = st.session_state.get('font_name', font_options[0])
@@ -606,7 +656,7 @@ with col_img:
             st.error(f"❌ 画像の読み込みに失敗しました: {str(e)}")
             st.session_state['uploaded_file'] = None
 
-    # プレビュー（現在の設定で画像を生成）
+    # プレビュー（キャッシュ版で画像を生成）
     preview_values = {group_key: st.session_state.get(group_key, '') for group_key in 'uvwx'}
     preview_checks = {key: st.session_state.get(f'check_{key}', False) for key in 'abcdefghijklmnopqrst'}
     preview_charactor_type = st.session_state.get('charactor_type') == "付喪神"
@@ -616,13 +666,17 @@ with col_img:
         FONT_SIZE_OVERRIDES.get(preview_font_name, 28)
     ) / 28
     
+    # アップロードファイルのハッシュを計算
+    uploaded_file_hash = hash_uploaded_file(st.session_state.get('uploaded_file'))
+    
     try:
-        preview_img_bytes, _ = create_image(
-            preview_values,
-            preview_checks,
+        # キャッシュ対応関数を呼び出し
+        preview_img_bytes, _ = create_image_cached(
+            tuple(preview_values.items()),  # 辞書 → タプル
+            tuple(preview_checks.items()),  # 辞書 → タプル
             st.session_state.get('filename', ''),
             preview_charactor_type,
-            st.session_state.get('uploaded_file'),
+            uploaded_file_hash,  # ファイルのハッシュ値
             st.session_state.get('font_path'),
             preview_font_scale,
             st.session_state.get('swap_layout', False),
@@ -632,9 +686,10 @@ with col_img:
             learned_color_hex
         )
         preview_img_bytes.seek(0)
-        st.image(preview_img_bytes, caption="プレビュー")
+        st.image(preview_img_bytes, caption="プレビュー ⚡")
     except Exception as e:
         st.error(f"❌ プレビュー生成に失敗しました: {str(e)}")
+        preview_img_bytes = None
 
 st.divider()
 
@@ -672,7 +727,7 @@ else:
 
 # フッター
 st.markdown("---")
-st.caption("ツクモツムギは現代日本を舞台にしたTRPGです | フォント: Google Fonts (OFL)")
+st.caption("ツクモツムギは～ | フォント: Google Fonts (OFL)")
 # フッターのカスタマイズ例（コメントアウト）:
 # st.caption("© 2026 あなたの名前 | ツクモツムギ能力値画像ジェネレーター")
 # st.caption("[GitHub](https://github.com/KugaKiri/Streamlit) | [公式サイト](https://example.com)")
