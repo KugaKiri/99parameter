@@ -531,7 +531,7 @@ with col_stats:
         default_css_size = FONT_SIZE_OVERRIDES.get(selected_font_name, 28)
         current_css_size = st.session_state.get('font_css_sizes', {}).get(selected_font_name, default_css_size)
         css_font_size = st.number_input(
-            "プレビュー文字サイズ(px)",
+            "文字サイズ(px)",
             min_value=10,
             max_value=80,
             value=int(current_css_size),
