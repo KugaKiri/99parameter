@@ -528,17 +528,17 @@ with col_stats:
         selected_font_name = st.selectbox("フォント", font_options, key="font_name")
         selected_font_path = LOCAL_FONTS.get(selected_font_name)
         st.session_state['font_path'] = selected_font_path
-        # default_css_size = FONT_SIZE_OVERRIDES.get(selected_font_name, 28)
-        # current_css_size = st.session_state.get('font_css_sizes', {}).get(selected_font_name, default_css_size)
-        # css_font_size = st.number_input(
-        #     "プレビュー文字サイズ(px)",
-        #     min_value=10,
-        #     max_value=80,
-        #     value=int(current_css_size),
-        #     step=1,
-        #     key=f"css_font_size_{selected_font_name}"
-        # )
-        # st.session_state['font_css_sizes'][selected_font_name] = css_font_size
+        default_css_size = FONT_SIZE_OVERRIDES.get(selected_font_name, 28)
+        current_css_size = st.session_state.get('font_css_sizes', {}).get(selected_font_name, default_css_size)
+        css_font_size = st.number_input(
+            "プレビュー文字サイズ(px)",
+            min_value=10,
+            max_value=80,
+            value=int(current_css_size),
+            step=1,
+            key=f"css_font_size_{selected_font_name}"
+        )
+        st.session_state['font_css_sizes'][selected_font_name] = css_font_size
 
     with col_font_preview:
         selected_font_name = st.session_state.get('font_name', font_options[0])
