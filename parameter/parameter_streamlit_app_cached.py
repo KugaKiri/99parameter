@@ -454,14 +454,18 @@ with st.sidebar:
     st.markdown("""
     ### ℹ️ 使い方
     1. キャラクターの能力値を入力
-    2. 画像をアップロード（任意）
-    3. プレビューを確認
-    4. ダウンロードボタンで保存
+    2. 取得している技能にチェックを入れる
+    3. キャラクター分類とキャラクター名を入力する
+    4. 画像をアップロード（任意）
+    5. 使用するフォント、背景色、文字色、ハイライト、透過率を設定する
+    6. プレビューを確認
+    7. ダウンロードボタンで保存
     
     ### 🔒 プライバシー
     - アップロードされた画像はサーバーに保存されません
     - すべての処理はメモリ上で完了します
     - 個人情報は一切収集しません
+    - このアプリはオープンソースであり、コードはGitHubで公開されています
     """)
     
     st.markdown("---")
@@ -573,6 +577,12 @@ with col_stats:
         render_skill_row("電脳", "check_s", "s")
         render_skill_row("容姿", "check_t", "t")
 
+    
+    col_char_type, col_char_name = st.columns([0.3, 0.7], gap="small")
+    with col_char_type:
+        st.radio("キャラクター分類", ["巫覡", "付喪神"], key="charactor_type", horizontal=True)
+    with col_char_name:
+        st.text_input("キャラ名", key="filename")
     st.markdown("<div class='color-controls'></div>", unsafe_allow_html=True)
     col_bg_color, col_text_color, col_learned_color, col_bg_alpha = st.columns([0.45, 0.45, 0.55, 1.1], gap="small")
     with col_bg_color:
@@ -618,10 +628,6 @@ with col_stats:
             unsafe_allow_html=True
         )
 
-    st.radio("キャラクター分類", ["巫覡", "付喪神"], key='charactor_type')
-    st.text_input("キャラ名", key='filename')
-    st.checkbox("画像と能力値を左右入れ替え画像生成(デフォルト：画像|能力値)", key="swap_layout")
-
 with col_img:
     # 画像アップロード
     uploaded_file = st.file_uploader("使用するキャラ立ち絵※一時表示用のためネットワーク上には保存されません。\nまた、300x500以内の10MB以下の画像に限ります。", type=["png", "jpg", "jpeg"], help="PNG, JPG, JPEG形式の画像を選択してください (推奨: 5MB以下)")
@@ -655,6 +661,7 @@ with col_img:
         except Exception as e:
             st.error(f"❌ 画像の読み込みに失敗しました: {str(e)}")
             st.session_state['uploaded_file'] = None
+
 
     # プレビュー（キャッシュ版で画像を生成）
     preview_values = {group_key: st.session_state.get(group_key, '') for group_key in 'uvwx'}
@@ -691,7 +698,8 @@ with col_img:
         st.error(f"❌ プレビュー生成に失敗しました: {str(e)}")
         preview_img_bytes = None
 
-st.divider()
+st.checkbox("画像と能力値を左右入れ替え画像生成(デフォルト：画像|能力値)", key="swap_layout")
+
 
 # ダウンロードボタンを常に表示（50%縮小版）
 if preview_img_bytes:
@@ -725,9 +733,11 @@ if preview_img_bytes:
 else:
     st.info("プレビュー画像を生成してからダウンロードできます。")
 
+
+
 # フッター
 st.markdown("---")
-st.caption("ツクモツムギは～ | フォント: Google Fonts (OFL)")
+st.caption("本サイトは「倉樫 澄人、N.G.P.、新紀元社」が権利を有する「[怪異捜査RPG ツクモツムギ](https://r-r.arclight.co.jp/rpg/怪異捜査rpgツクモツムギ/)」の二次創作物です。")
+st.caption("プログラミング言語：Python3.13.9｜[GitHub](https://github.com/KugaKiri/Streamlit)｜使用フォント: Google Fonts (OFL)")
 # フッターのカスタマイズ例（コメントアウト）:
-# st.caption("© 2026 あなたの名前 | ツクモツムギ能力値画像ジェネレーター")
-# st.caption("[GitHub](https://github.com/KugaKiri/Streamlit) | [公式サイト](https://example.com)")
+st.caption("制作者：くがみ | ツクモツムギ-能力値画像ジェネレーター")

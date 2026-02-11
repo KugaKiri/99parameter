@@ -125,7 +125,7 @@ def list_local_fonts(fonts_dir):
     for font_file in fonts_path.iterdir():
         if font_file.suffix.lower() in {".ttf", ".otf", ".ttc"}:
             display_name = font_file.stem
-            fonts[display_name] = str(fonts_dir)
+            fonts[display_name] = str(font_file)
 
     return dict(sorted(fonts.items(), key=lambda item: item[0].lower()))
 
