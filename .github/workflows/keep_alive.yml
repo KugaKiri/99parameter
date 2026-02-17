@@ -2,9 +2,8 @@ name: Streamlit Keep Alive
 
 on:
   schedule:
-    # UTC（世界標準時）で設定。日本時間(JST)より9時間前。
-    # 下記は毎日 0:00, 6:00, 12:00, 18:00 (JST) ごとに実行する例
-    - cron: '0 3,9,15,21 * * *'
+    # UTC（世界標準時）で設定。2時間ごとに実行
+    - cron: '0 */2 * * *'
   workflow_dispatch: # Actionsタブから手動でも実行できるようにする
 
 jobs:
@@ -12,7 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Access Streamlit App
-        # アプリのURLを自身のものに書き換えてください
+        # GETリクエストでコンテンツを取得してアプリを起動
         run: |
-          curl -I https://kuga-99para.streamlit.app
-          curl -I https://kuga-99para-ch.streamlit.app
+          curl -L https://kuga-99para.streamlit.app
+          curl -L https://kuga-99para-ch.streamlit.app
+          echo "Apps pinged at $(date)"
