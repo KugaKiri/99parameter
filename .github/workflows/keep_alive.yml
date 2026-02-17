@@ -13,6 +13,6 @@ jobs:
       - name: Access Streamlit App
         # GETリクエストでコンテンツを取得してアプリを起動
         run: |
-          curl -L https://kuga-99para.streamlit.app
-          curl -L https://kuga-99para-ch.streamlit.app
+          curl -L --max-time 60 --retry 3 --retry-delay 5 https://kuga-99para.streamlit.app || echo "App 1 failed"
+          curl -L --max-time 60 --retry 3 --retry-delay 5 https://kuga-99para-ch.streamlit.app || echo "App 2 failed"
           echo "Apps pinged at $(date)"
